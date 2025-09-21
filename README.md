@@ -139,7 +139,7 @@ npm run dev
    - Multiple matches increase the boost (capped at 1.0).
 
 4. **Final score (hybrid fusion)**  
-````
+```
 final = 0.7 \* vector + 0.2 \* keyword + 0.1 \* tagBoost
 ```
 - Weighted combination of signals ensures semantic + lexical + intent coverage.  
