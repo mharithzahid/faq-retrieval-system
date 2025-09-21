@@ -1,0 +1,1 @@
+ALTER TABLE "Faq" ALTER COLUMN "embedding" TYPE vector(1536);
