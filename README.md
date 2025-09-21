@@ -17,17 +17,6 @@ Minimal patient–provider FAQ retrieval prototype built with:
   - Ambiguity flag
 - Seeds 6 FAQs with embeddings
 
-## Repo Structure
-```
-
-faq-retrieval-system/
-├── backend/   (Nest.js)
-├── frontend/  (Next.js)
-├── docker-compose.yml
-└── README.md
-
-````
-
 ## Prerequisites
 - Node.js **18+**
 - Docker and Docker Compose
