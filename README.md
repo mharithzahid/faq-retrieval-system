@@ -17,8 +17,6 @@ Minimal patient–provider FAQ retrieval prototype built with:
   - Ambiguity flag
 - Seeds 6 FAQs with embeddings
 
----
-
 ## Repo Structure
 ```
 
@@ -30,14 +28,10 @@ faq-retrieval-system/
 
 ````
 
----
-
 ## Prerequisites
 - Node.js **18+**
 - Docker and Docker Compose
 - OpenAI API key (for embeddings)
-
----
 
 ## Setup & Run
 
@@ -46,7 +40,7 @@ faq-retrieval-system/
 docker compose up -d
 ````
 
-### 2. Environment files (⚠️ Required)
+### 2. Environment files (Required)
 
 You need **two env files** — one for the backend, one for the frontend.
 
@@ -69,8 +63,6 @@ NEXT_PUBLIC_API_BASE_URL="http://localhost:3000"
 ADMIN_USER="admin"
 ADMIN_PASS="password123"
 ```
-
----
 
 ### 3. Install backend dependencies & run migrations
 
@@ -116,8 +108,6 @@ npm install
 npm run dev
 ```
 
----
-
 ## How Scoring Works (Hybrid Approach)
 
 1. **Vector similarity (primary signal)**  
@@ -149,8 +139,6 @@ final = 0.7 \* vector + 0.2 \* keyword + 0.1 \* tagBoost
 - Only keep FAQs with `final >= threshold` (default `0.4`).  
 - If top candidates are **within delta (0.05)** but belong to **different tags**,  
   mark as `ambiguous: true`.
-
----
 
 ## How to Run Seed & Test `/ask`
 
