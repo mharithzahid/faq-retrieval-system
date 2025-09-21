@@ -2,6 +2,7 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmbeddingsService } from '../embeddings/embeddings.service';
 import { AskDto } from './dto/ask.dto';
+import { PorterStemmer } from 'natural';
 
 type AskRow = {
   id: number;
@@ -12,12 +13,14 @@ type AskRow = {
   score: number;
 };
 
-const THRESHOLD = parseFloat(process.env.ASK_MIN_SCORE || '0.4');
+const THRESHOLD = parseFloat(process.env.ASK_MIN_SCORE || '0.65');
 const DELTA = parseFloat(process.env.ASK_AMBIGUITY_DELTA || '0.05');
 const TOP_K = parseInt(process.env.ASK_RETURN_TOP_K || '3', 10);
-const W_VEC = parseFloat(process.env.ASK_WEIGHT_VECTOR || '0.8');
-const W_KW = parseFloat(process.env.ASK_WEIGHT_KEYWORD || '0.15');
-const W_TAG = parseFloat(process.env.ASK_WEIGHT_TAG || '0.05');
+
+// Tweaked weights for better balance
+const W_VEC = parseFloat(process.env.ASK_WEIGHT_VECTOR || '0.7');
+const W_KW = parseFloat(process.env.ASK_WEIGHT_KEYWORD || '0.2');
+const W_TAG = parseFloat(process.env.ASK_WEIGHT_TAG || '0.1');
 
 const STOPWORDS = new Set([
   'a', 'an', 'the', 'and', 'or', 'of', 'to', 'for', 'on', 'in', 'at', 'is',
@@ -63,7 +66,9 @@ function normalize(text: string) {
 
 function tokenize(text: string): string[] {
   const tokens = normalize(text).split(/\s+/).filter(Boolean);
-  const filtered = tokens.filter((t) => t.length > 1 && !STOPWORDS.has(t));
+  const filtered = tokens
+    .filter((t) => t.length > 1 && !STOPWORDS.has(t))
+    .map((t) => PorterStemmer.stem(t));
   return Array.from(new Set(filtered));
 }
 
@@ -117,18 +122,30 @@ export class AskController {
       };
     }
 
+    const minScore = Math.min(...candidates.map((c) => Number(c.score)));
+    const maxScore = Math.max(...candidates.map((c) => Number(c.score)));
+
     const predicted = predictTags(qTokens);
     const rescored = candidates.map((r) => {
-      const fTokens = tokenize(`${r.question} ${r.answer}`);
-      const kw = keywordOverlap(qTokens, fTokens);
-      const tagHit = r.tags?.some((t) => predicted.has(t)) ? 1 : 0;
+      const qFaqTokens = tokenize(r.question);
+      const aFaqTokens = tokenize(r.answer);
+
+      const kw = 0.7 * keywordOverlap(qTokens, qFaqTokens) +
+                 0.3 * keywordOverlap(qTokens, aFaqTokens);
+
+                 const matchedTags = r.tags?.filter((t) => predicted.has(t)) || [];
+      const tagScore = Math.min(1, matchedTags.length / 2);
+
+      const normScore = (Number(r.score) - minScore) / (maxScore - minScore || 1);
+
       const finalScore = Math.max(
         0,
         Math.min(
           1,
-          W_VEC * Number(r.score) + W_KW * kw + W_TAG * tagHit,
+          W_VEC * normScore + W_KW * kw + W_TAG * tagScore,
         ),
       );
+
       return { ...r, finalScore };
     });
 
