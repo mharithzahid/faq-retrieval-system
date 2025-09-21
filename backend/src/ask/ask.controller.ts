@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { EmbeddingsService } from '../embeddings/embeddings.service';
 import { AskDto } from './dto/ask.dto';
 import { PorterStemmer } from 'natural';
@@ -16,8 +16,6 @@ type AskRow = {
 const THRESHOLD = parseFloat(process.env.ASK_MIN_SCORE || '0.65');
 const DELTA = parseFloat(process.env.ASK_AMBIGUITY_DELTA || '0.05');
 const TOP_K = parseInt(process.env.ASK_RETURN_TOP_K || '3', 10);
-
-// Tweaked weights for better balance
 const W_VEC = parseFloat(process.env.ASK_WEIGHT_VECTOR || '0.7');
 const W_KW = parseFloat(process.env.ASK_WEIGHT_KEYWORD || '0.2');
 const W_TAG = parseFloat(process.env.ASK_WEIGHT_TAG || '0.1');
