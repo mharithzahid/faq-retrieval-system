@@ -7,5 +7,5 @@ export class AskDto {
 
   @IsOptional()
   @IsString()
-  lang?: string; // default 'en'
+  lang?: string;
 }

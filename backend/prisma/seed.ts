@@ -47,7 +47,7 @@ const faqs: SeedFaq[] = [
 async function getEmbedding(text: string): Promise<number[]> {
   const content = text.replace(/\s+/g, ' ').trim();
   const res = await openai.embeddings.create({
-    model: 'text-embedding-3-small', // 1536-dim
+    model: 'text-embedding-3-small',
     input: content,
   });
   return res.data[0].embedding;
@@ -60,7 +60,6 @@ async function main() {
     const combined = `${item.question}\n\n${item.answer}`;
     const embedding = await getEmbedding(combined);
 
-    // Create row first (without embedding)
     const created = await prisma.faq.create({
       data: {
         question: item.question,
@@ -70,8 +69,7 @@ async function main() {
       },
     });
 
-    // Update vector column via raw SQL
-    const vectorLiteral = `[${embedding.join(',')}]`; // pgvector literal
+    const vectorLiteral = `[${embedding.join(',')}]`;
     await prisma.$executeRaw`
       UPDATE "Faq"
       SET "embedding" = ${vectorLiteral}::vector

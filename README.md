@@ -62,10 +62,10 @@ Setup and run
   - npm run dev
 
 How scoring works (simple hybrid)
-- Vector similarity (primary signal): We embed the user query and each FAQ (question+answer) using OpenAI embeddings (text-embedding-3-small, 1536-dim). We query via pgvector and compute vector score = 1 - cosine_distance, in range [0,1].
-- Keyword overlap (light lexical signal): We normalize and tokenize text, remove stopwords, then compute overlap(queryTokens ∩ faqTokens)/queryTokens.length (bounded [0,1]).
-- Tag boost (intent hint): We map query tokens through a tiny dictionary to predict tags (e.g., “open”, “hours” -> hours). If any predicted tag matches a FAQ’s tags, apply a small boost.
-- Final score = 0.8 * vector + 0.15 * keyword + 0.05 * tagBoost. We keep the top candidates above a confidence threshold. If multiple close scores from different tags are within a small delta we set ambiguous: true and return them.
+- Vector similarity (primary signal): Embed the user query and each FAQ (question+answer) using OpenAI embeddings (text-embedding-3-small, 1536-dim). Query via pgvector and compute vector score = 1 - cosine_distance, in range [0,1].
+- Keyword overlap (light lexical signal): Normalize and tokenize text, remove stopwords, then compute overlap(queryTokens ∩ faqTokens)/queryTokens.length (bounded [0,1]).
+- Tag boost (intent hint): Map query tokens through a tiny dictionary to predict tags (e.g., “open”, “hours” -> hours). If any predicted tag matches a FAQ’s tags, apply a small boost.
+- Final score = 0.8 * vector + 0.15 * keyword + 0.05 * tagBoost. Keep the top candidates above a confidence threshold. If multiple close scores from different tags are within a small delta set ambiguous: true and return them.
 
 How to run the seed and test /ask
 

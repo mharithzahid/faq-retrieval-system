@@ -5,6 +5,6 @@ import { EmbeddingsModule } from './embeddings/embeddings.module';
 import { AskModule } from './ask/ask.module';
 
 @Module({
-imports: [PrismaModule, EmbeddingsModule, FaqsModule, AskModule],
+  imports: [PrismaModule, EmbeddingsModule, FaqsModule, AskModule],
 })
 export class AppModule {}

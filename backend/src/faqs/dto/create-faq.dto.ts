@@ -15,5 +15,5 @@ export class CreateFaqDto {
 
   @IsOptional()
   @IsString()
-  lang?: string; // default to 'en'
+  lang?: string;
 }
