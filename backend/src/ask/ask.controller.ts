@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { EmbeddingsService } from '../embeddings/embeddings.service';
 import { AskDto } from './dto/ask.dto';
 import { PorterStemmer } from 'natural';
