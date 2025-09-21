@@ -1,84 +1,190 @@
-Candidate Assessment – FAQ Retrieval System
+# Candidate Assessment – FAQ Retrieval System
 
-Overview
-- Minimal patient–provider FAQ retrieval prototype using Nest.js (backend), Next.js (frontend), PostgreSQL + pgvector, Prisma, and OpenAI embeddings.
-- Features:
-  - CRUD for FAQs (question, answer, tags[], lang)
-  - /ask endpoint: returns ranked results with score, threshold fallback, and ambiguity flag
-  - Seeds 6 FAQs with embeddings
+## Overview
+Minimal patient–provider FAQ retrieval prototype built with:
 
-Repo structure
-- faq-retrieval-system/
-  - backend/ (Nest.js)
-  - frontend/ (Next.js)
-  - docker-compose.yml
-  - README.md
+- **Backend:** Nest.js  
+- **Frontend:** Next.js  
+- **Database:** PostgreSQL + pgvector  
+- **ORM:** Prisma  
+- **Embeddings:** OpenAI  
 
-Prerequisites
-- Node.js 18+
+### Features
+- CRUD for FAQs (`question`, `answer`, `tags[]`, `lang`)
+- `/ask` endpoint:
+  - Returns ranked results with score
+  - Threshold fallback
+  - Ambiguity flag
+- Seeds 6 FAQs with embeddings
+
+---
+
+## Repo Structure
+```
+
+faq-retrieval-system/
+├── backend/   (Nest.js)
+├── frontend/  (Next.js)
+├── docker-compose.yml
+└── README.md
+
+````
+
+---
+
+## Prerequisites
+- Node.js **18+**
 - Docker and Docker Compose
 - OpenAI API key (for embeddings)
 
-Setup and run
+---
 
-1) Start the database (PostgreSQL with pgvector)
-- From repo root: docker compose up -d
+## Setup & Run
 
-2) Backend env
-- Create backend/.env with:
-  - DATABASE_URL="postgresql://postgres:postgres@localhost:5432/faqs?schema=public"
-  - OPENAI_API_KEY="sk-REPLACE_ME"
-  - Optional for Prisma shadow DB: SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/faqs_shadow?schema=public"
+### 1. Start the database (PostgreSQL with pgvector)
+```bash
+docker compose up -d
+````
 
-3) Install backend deps, run migrations, generate client
-- cd backend
-- npm install
-- npx prisma migrate dev
-- npx prisma generate
+### 2. Environment files (⚠️ Required)
 
-4) Seed the database (creates 6 FAQs with embeddings)
-- Ensure OPENAI_API_KEY is set
-- npm run db:seed
-- Notes:
-  - Seeding calls OpenAI text-embedding-3-small and writes vectors to the embedding column (pgvector).
-  - If you skip seeding or lack an API key, CRUD still works but /ask will return no matches until embeddings exist.
+You need **two env files** — one for the backend, one for the frontend.
 
-5) Run the backend
-- npm run start:dev
-- Backend runs at http://localhost:3000
-- Key endpoints:
-  - GET /faqs?lang=en&tag=booking&search=hours
-  - POST /faqs
-  - PATCH /faqs/:id
-  - DELETE /faqs/:id
-  - POST /ask
+#### Backend → `backend/.env`
 
-6) Frontend env and run
-- cd ../frontend
-- npm install
-- Create frontend/.env.local with:
-  - NEXT_PUBLIC_API_BASE_URL="http://localhost:3000"
-- Run:
-  - npm run dev
+Example:
 
-How scoring works (simple hybrid)
-- Vector similarity (primary signal): Embed the user query and each FAQ (question+answer) using OpenAI embeddings (text-embedding-3-small, 1536-dim). Query via pgvector and compute vector score = 1 - cosine_distance, in range [0,1].
-- Keyword overlap (light lexical signal): Normalize and tokenize text, remove stopwords, then compute overlap(queryTokens ∩ faqTokens)/queryTokens.length (bounded [0,1]).
-- Tag boost (intent hint): Map query tokens through a tiny dictionary to predict tags (e.g., “open”, “hours” -> hours). If any predicted tag matches a FAQ’s tags, apply a small boost.
-- Final score = 0.8 * vector + 0.15 * keyword + 0.05 * tagBoost. Keep the top candidates above a confidence threshold. If multiple close scores from different tags are within a small delta set ambiguous: true and return them.
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5430/faqs?schema=public"
+SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5430/faqs_shadow?schema=public"
+OPENAI_API_KEY="YOUR-OPENAI-KEY"
+```
 
-How to run the seed and test /ask
+#### Frontend → `frontend/.env.local`
 
-Seed
-- Ensure DB is up and migrations applied.
-- Ensure backend/.env contains OPENAI_API_KEY.
-- From backend: npm run db:seed
-- Expected: logs indicating 6 seeded FAQs.
+Example:
 
-Test /ask
-- Example 1 (hours):
-  - curl -X POST http://localhost:3000/ask -H "Content-Type: application/json" -d '{"text":"Are you open on Saturday?", "lang":"en"}'
-- Example 2 (booking):
-  - curl -X POST http://localhost:3000/ask -H "Content-Type: application/json" -d '{"text":"How do I reschedule my appointment?", "lang":"en"}'
-- Example 3 (possible ambiguity: billing + location):
-  - curl -X POST http://localhost:3000/ask -H "Content-Type: application/json" -d '{"text":"Do you take card payments and where are you located?", "lang":"en"}'
+```env
+NEXT_PUBLIC_API_BASE_URL="http://localhost:3000"
+ADMIN_USER="admin"
+ADMIN_PASS="password123"
+```
+
+---
+
+### 3. Install backend dependencies & run migrations
+
+```bash
+cd backend
+npm install
+npx prisma generate
+npx prisma migrate dev
+```
+
+### 4. Seed the database (creates 6 FAQs with embeddings)
+
+```bash
+npm run db:seed
+```
+
+**Notes:**
+
+* Seeding calls `text-embedding-3-small` and writes vectors to the `embedding` column (`pgvector`).
+* If you skip seeding or don’t set `OPENAI_API_KEY`, CRUD still works, but `/ask` will return no matches until embeddings exist.
+
+### 5. Run the backend
+
+```bash
+npm run start:dev
+```
+
+Backend runs at: **[http://localhost:3000](http://localhost:3000)**
+
+**Key endpoints:**
+
+* `GET /faqs?lang=en&tag=booking&search=hours`
+* `POST /faqs`
+* `PATCH /faqs/:id`
+* `DELETE /faqs/:id`
+* `POST /ask`
+
+### 6. Frontend install & run
+
+```bash
+cd ../frontend
+npm install
+npm run dev
+```
+
+---
+
+## How Scoring Works (Hybrid Approach)
+
+1. **Vector similarity (primary signal)**  
+   - Query and FAQ entries are embedded using `text-embedding-3-small` (1536-dim).  
+   - `pgvector` computes similarity → `1 - cosine_distance` → normalized to `[0,1]`.  
+   - Acts as the main semantic relevance measure.
+
+2. **Keyword overlap (lexical signal)**  
+   - Text is normalized, tokenized, stopwords removed, and stemmed (`booking` → `book`).  
+   - Overlap is measured separately for FAQ **question** and **answer**:  
+     ```
+     score = 0.7 * overlap(query, question) + 0.3 * overlap(query, answer)
+     ```
+   - This balances precision (question) with recall (answer).
+
+3. **Tag boost (intent hint)**  
+   - Query tokens are mapped to high-level tags (e.g., `"open", "hours"` → `hours`).  
+   - If predicted tags overlap with FAQ tags → boost added.  
+   - Multiple matches increase the boost (capped at 1.0).
+
+4. **Final score (hybrid fusion)**  
+````
+final = 0.7 \* vector + 0.2 \* keyword + 0.1 \* tagBoost
+```
+- Weighted combination of signals ensures semantic + lexical + intent coverage.  
+- Scores are clamped into `[0,1]`.
+
+5. **Thresholding & ambiguity handling**  
+- Only keep FAQs with `final >= threshold` (default `0.4`).  
+- If top candidates are **within delta (0.05)** but belong to **different tags**,  
+  mark as `ambiguous: true`.
+
+---
+
+## How to Run Seed & Test `/ask`
+
+### Seed
+
+```bash
+cd backend
+npm run db:seed
+```
+
+**Expected:** logs showing 6 seeded FAQs.
+
+### Test `/ask`
+
+**Example 1 – Hours**
+
+```bash
+curl -X POST http://localhost:3000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Are you open on Saturday?", "lang":"en"}'
+```
+
+**Example 2 – Booking**
+
+```bash
+curl -X POST http://localhost:3000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"text":"How do I reschedule my appointment?", "lang":"en"}'
+```
+
+**Example 3 – Possible ambiguity (billing + location)**
+
+```bash
+curl -X POST http://localhost:3000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Do you take card payments and where are you located?", "lang":"en"}'
+```
